@@ -1,337 +1,122 @@
-# -*- coding: utf-8 -*-
-
-from datetime import datetime
-
-from fastapi import FastAPI, Depends, Request, Form, status
+from fastapi import FastAPI, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
+from fastapi.staticfiles import StaticFiles
 from db import getDB, lifespan
-
+import psycopg  # 用來捕捉資料庫錯誤
 
 app = FastAPI(lifespan=lifespan)
 
+# 掛載靜態檔案與模板
+app.mount("/www", StaticFiles(directory="www"), name="www")
 templates = Jinja2Templates(directory="templates")
 
-app.mount(
-    "/www",
-    StaticFiles(directory="www"),
-    name="www"
-)
-
-
-def row_to_dict(cursor, row):
-    """將資料庫查詢結果轉成可供 Jinja 使用的 dictionary。"""
-    if row is None:
-        return None
-
-    column_names = [
-        getattr(column, "name", column[0])
-        for column in cursor.description
-    ]
-
-    return dict(zip(column_names, row))
-
-
-def rows_to_dicts(cursor, rows):
-    return [
-        row_to_dict(cursor, row)
-        for row in rows
-    ]
-
-
+# 根目錄自動導向活動清單
 @app.get("/")
-async def home():
-    return RedirectResponse(
-        url="/events",
-        status_code=status.HTTP_303_SEE_OTHER
-    )
+async def root():
+    return RedirectResponse(url="/events")
 
-
-# 活動清單
+# 1. 顯示活動清單 (對應 activityList.html)
 @app.get("/events", response_class=HTMLResponse)
-async def show_event_list(
-    request: Request,
-    db=Depends(getDB)
-):
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        SELECT
-            e.id,
-            e.title,
-            e.description,
-            e.deadline,
-            COUNT(r.id) AS registration_count
-        FROM events AS e
-        LEFT JOIN registrations AS r
-            ON r.event_id = e.id
-        GROUP BY
-            e.id,
-            e.title,
-            e.description,
-            e.deadline
+async def list_events(request: Request, db=Depends(getDB)):
+    # 撈取所有活動，並計算每個活動目前的報名人數
+    query = """
+        SELECT e.id, e.title, e.description, e.deadline, 
+               COUNT(r.id) as registration_count
+        FROM Events e
+        LEFT JOIN Registrations r ON e.id = r.event_id
+        GROUP BY e.id
         ORDER BY e.id DESC
-        """
-    )
+    """
+    cursor = await db.execute(query)
+    events = await cursor.fetchall()
+    
+    return templates.TemplateResponse(request=request, name="activityList.html", context={"request": request, "events": events})
 
-    events = rows_to_dicts(cursor, cursor.fetchall())
-    cursor.close()
-
-    return templates.TemplateResponse(
-        "activityList.html",
-        {
-            "request": request,
-            "events": events
-        }
-    )
-
-
-# 顯示新增活動表單
+# 2-1. 顯示新增活動表單 (對應 activityAdd.html)
 @app.get("/events/add", response_class=HTMLResponse)
 async def show_add_event_form(request: Request):
-    return templates.TemplateResponse(
-        "activityAdd.html",
-        {
-            "request": request
-        }
-    )
+    return templates.TemplateResponse(request=request, name="activityAdd.html", context={"request": request})
 
-
-# 儲存新活動
+# 2-2. 處理新增活動資料
 @app.post("/events/create")
 async def create_event(
     title: str = Form(...),
-    description: str = Form(""),
-    deadline: datetime | None = Form(None),
+    description: str = Form(None),
+    deadline: str = Form(None),
     db=Depends(getDB)
 ):
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO events (
-            title,
-            description,
-            deadline
-        )
-        VALUES (%s, %s, %s)
-        """,
-        (
-            title.strip(),
-            description.strip(),
-            deadline
-        )
+    # 若截止時間為空字串，轉換為 None 以符合資料庫格式
+    deadline_val = deadline if deadline else None
+    
+    await db.execute(
+        "INSERT INTO Events (title, description, deadline) VALUES (%s, %s, %s)",
+        (title, description, deadline_val)
     )
+    await db.commit()
+    return RedirectResponse(url="/events", status_code=303)
 
-    db.commit()
-    cursor.close()
+# 3-1. 顯示報名表單 (對應 registrationAdd.html)
+@app.get("/events/{event_id}/register", response_class=HTMLResponse)
+async def show_register_form(request: Request, event_id: int, db=Depends(getDB)):
+    cursor = await db.execute("SELECT * FROM Events WHERE id = %s", (event_id,))
+    event = await cursor.fetchone()
+    
+    if not event:
+        return HTMLResponse("找不到該活動", status_code=404)
+        
+    return templates.TemplateResponse(request=request, name="registrationAdd.html", context={"request": request, "event": event})
 
-    return RedirectResponse(
-        url="/events",
-        status_code=status.HTTP_303_SEE_OTHER
-    )
-
-
-# 顯示活動報名表
-@app.get(
-    "/events/{event_id}/register",
-    response_class=HTMLResponse
-)
-async def show_registration_form(
-    event_id: int,
-    request: Request,
-    db=Depends(getDB)
-):
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        SELECT id, title, description, deadline
-        FROM events
-        WHERE id = %s
-        """,
-        (event_id,)
-    )
-
-    event = row_to_dict(cursor, cursor.fetchone())
-    cursor.close()
-
-    if event is None:
-        return HTMLResponse(
-            content="<h1>找不到這個活動</h1>",
-            status_code=404
-        )
-
-    return templates.TemplateResponse(
-        "registrationAdd.html",
-        {
-            "request": request,
-            "event": event,
-            "error": None
-        }
-    )
-
-
-# 儲存報名資料
+# 3-2. 處理報名資料
 @app.post("/events/{event_id}/register")
-async def create_registration(
-    event_id: int,
+async def submit_registration(
     request: Request,
+    event_id: int,
     name: str = Form(...),
     phone: str = Form(...),
     db=Depends(getDB)
 ):
-    cursor = db.cursor()
+    # 先抓取活動資料（為了萬一報名失敗時，重新渲染表單使用）
+    cursor = await db.execute("SELECT * FROM Events WHERE id = %s", (event_id,))
+    event = await cursor.fetchone()
 
-    # 取得活動資料
-    cursor.execute(
-        """
-        SELECT id, title, description, deadline
-        FROM events
-        WHERE id = %s
-        """,
-        (event_id,)
-    )
-
-    event = row_to_dict(cursor, cursor.fetchone())
-
-    if event is None:
-        cursor.close()
-
-        return HTMLResponse(
-            content="<h1>找不到這個活動</h1>",
-            status_code=404
+    try:
+        await db.execute(
+            "INSERT INTO Registrations (event_id, name, phone) VALUES (%s, %s, %s)",
+            (event_id, name, phone)
         )
-
-    # 檢查是否已超過截止時間
-    if (
-        event["deadline"] is not None
-        and datetime.now() > event["deadline"]
-    ):
-        cursor.close()
-
+        await db.commit()
+        # 報名成功，導向查看名單頁面
+        return RedirectResponse(url=f"/events/{event_id}/registrations", status_code=303)
+        
+    except psycopg.errors.UniqueViolation:
+        # 捕捉重複報名的錯誤 (需要你的資料庫表格有設定 UNIQUE 限制)
+        await db.rollback()
         return templates.TemplateResponse(
-            "registrationAdd.html",
-            {
-                "request": request,
-                "event": event,
-                "error": "這個活動已經截止報名。"
-            },
-            status_code=400
+            request=request,
+            name="registrationAdd.html", 
+            context={"request": request, "event": event, "error": "此姓名與電話已經報名過該活動囉！"}
         )
 
-    # 檢查相同活動、姓名及電話是否重複
-    cursor.execute(
-        """
-        SELECT id
-        FROM registrations
-        WHERE event_id = %s
-          AND name = %s
-          AND phone = %s
-        """,
-        (
-            event_id,
-            name.strip(),
-            phone.strip()
-        )
-    )
+# 4. 查看報名清單 (對應 registrationList.html)
+@app.get("/events/{event_id}/registrations", response_class=HTMLResponse)
+async def list_registrations(request: Request, event_id: int, db=Depends(getDB)):
+    # 抓取活動本身資訊
+    cursor_event = await db.execute("SELECT * FROM Events WHERE id = %s", (event_id,))
+    event = await cursor_event.fetchone()
+    
+    if not event:
+        return HTMLResponse("找不到該活動", status_code=404)
 
-    duplicate_registration = cursor.fetchone()
-
-    if duplicate_registration is not None:
-        cursor.close()
-
-        return templates.TemplateResponse(
-            "registrationAdd.html",
-            {
-                "request": request,
-                "event": event,
-                "error": "相同姓名和電話已經報名過這個活動。"
-            },
-            status_code=400
-        )
-
-    cursor.execute(
-        """
-        INSERT INTO registrations (
-            event_id,
-            name,
-            phone
-        )
-        VALUES (%s, %s, %s)
-        """,
-        (
-            event_id,
-            name.strip(),
-            phone.strip()
-        )
-    )
-
-    db.commit()
-    cursor.close()
-
-    return RedirectResponse(
-        url=f"/events/{event_id}/registrations",
-        status_code=status.HTTP_303_SEE_OTHER
-    )
-
-
-# 顯示活動報名名單
-@app.get(
-    "/events/{event_id}/registrations",
-    response_class=HTMLResponse
-)
-async def show_registration_list(
-    event_id: int,
-    request: Request,
-    db=Depends(getDB)
-):
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        SELECT id, title, description, deadline
-        FROM events
-        WHERE id = %s
-        """,
+    # 抓取該活動的所有報名者資訊
+    cursor_reg = await db.execute(
+        "SELECT * FROM Registrations WHERE event_id = %s ORDER BY created_at ASC", 
         (event_id,)
     )
-
-    event = row_to_dict(cursor, cursor.fetchone())
-
-    if event is None:
-        cursor.close()
-
-        return HTMLResponse(
-            content="<h1>找不到這個活動</h1>",
-            status_code=404
-        )
-
-    cursor.execute(
-        """
-        SELECT id, event_id, name, phone, created_at
-        FROM registrations
-        WHERE event_id = %s
-        ORDER BY created_at ASC
-        """,
-        (event_id,)
-    )
-
-    registrations = rows_to_dicts(
-        cursor,
-        cursor.fetchall()
-    )
-
-    cursor.close()
-
+    registrations = await cursor_reg.fetchall()
+    
     return templates.TemplateResponse(
-        "registrationList.html",
-        {
-            "request": request,
-            "event": event,
-            "registrations": registrations
-        }
+        request=request,
+        name="registrationList.html", 
+        context={"request": request, "event": event, "registrations": registrations}
     )
