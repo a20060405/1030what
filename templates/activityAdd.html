@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新增活動</title>
+</head>
+
+<body>
+    <h1>新增活動</h1>
+
+    <form action="/events/create" method="post">
+        <div>
+            <label for="title">活動名稱</label>
+            <input
+                type="text"
+                id="title"
+                name="title"
+                placeholder="請輸入活動名稱"
+                required
+            >
+        </div>
+
+        <br>
+
+        <div>
+            <label for="description">活動說明</label>
+            <textarea
+                id="description"
+                name="description"
+                rows="5"
+                placeholder="請輸入活動說明"
+            ></textarea>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="deadline">報名截止時間</label>
+            <input
+                type="datetime-local"
+                id="deadline"
+                name="deadline"
+            >
+        </div>
+
+        <br>
+
+        <button type="submit">新增活動</button>
+        <a href="/events">返回活動清單</a>
+    </form>
+</body>
+</html>

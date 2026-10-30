@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活動清單</title>
+    <link rel="stylesheet" href="/www/style.css">
+</head>
+
+<body>
+    <header>
+        <h1>活動報名系統</h1>
+
+        <nav>
+            <a href="/events">活動清單</a>
+            <a href="/events/add">新增活動</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="page-heading">
+            <h2>可報名的活動</h2>
+            <a class="primary-button" href="/events/add">新增活動</a>
+        </div>
+
+        {% if events %}
+            <section class="event-list">
+                {% for event in events %}
+                    <article class="event-card">
+                        <h3>{{ event.title }}</h3>
+
+                        <p class="description">
+                            {{ event.description or "目前沒有活動說明" }}
+                        </p>
+
+                        <p>
+                            <strong>報名截止時間：</strong>
+                            {{ event.deadline or "未設定" }}
+                        </p>
+
+                        <p>
+                            <strong>目前報名人數：</strong>
+                            {{ event.registration_count | default(0) }} 人
+                        </p>
+
+                        <div class="button-group">
+                            <a
+                                class="primary-button"
+                                href="/events/{{ event.id }}/register"
+                            >
+                                我要報名
+                            </a>
+
+                            <a
+                                class="secondary-button"
+                                href="/events/{{ event.id }}/registrations"
+                            >
+                                查看報名名單
+                            </a>
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+        {% else %}
+            <section class="empty-message">
+                <p>目前還沒有活動。</p>
+                <a class="primary-button" href="/events/add">
+                    建立第一個活動
+                </a>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>
