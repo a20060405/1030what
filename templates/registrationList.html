@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>報名名單</title>
+    <link rel="stylesheet" href="/www/style.css">
+</head>
+
+<body>
+    <header>
+        <h1>活動報名系統</h1>
+
+        <nav>
+            <a href="/events">活動清單</a>
+            <a href="/events/add">新增活動</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="page-heading">
+            <div>
+                <h2>{{ event.title }}－報名名單</h2>
+                <p>目前共有 {{ registrations | length }} 人報名</p>
+            </div>
+
+            <a
+                class="primary-button"
+                href="/events/{{ event.id }}/register"
+            >
+                新增報名
+            </a>
+        </div>
+
+        {% if registrations %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>編號</th>
+                            <th>姓名</th>
+                            <th>聯絡電話</th>
+                            <th>報名時間</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for registration in registrations %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ registration.name }}</td>
+                                <td>{{ registration.phone }}</td>
+                                <td>{{ registration.created_at }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <section class="empty-message">
+                <p>目前還沒有人報名這個活動。</p>
+
+                <a
+                    class="primary-button"
+                    href="/events/{{ event.id }}/register"
+                >
+                    第一個報名
+                </a>
+            </section>
+        {% endif %}
+
+        <div class="bottom-link">
+            <a class="secondary-button" href="/events">
+                返回活動清單
+            </a>
+        </div>
+    </main>
+</body>
+</html>

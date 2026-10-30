@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活動報名</title>
+    <link rel="stylesheet" href="/www/style.css">
+</head>
+
+<body>
+    <header>
+        <h1>活動報名系統</h1>
+
+        <nav>
+            <a href="/events">活動清單</a>
+            <a href="/events/add">新增活動</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="form-card">
+            <h2>活動報名</h2>
+
+            <div class="event-information">
+                <h3>{{ event.title }}</h3>
+
+                <p>
+                    {{ event.description or "目前沒有活動說明" }}
+                </p>
+
+                <p>
+                    <strong>報名截止時間：</strong>
+                    {{ event.deadline or "未設定" }}
+                </p>
+            </div>
+
+            {% if error %}
+                <p class="error-message">{{ error }}</p>
+            {% endif %}
+
+            <form
+                action="/events/{{ event.id }}/register"
+                method="post"
+            >
+                <input
+                    type="hidden"
+                    name="event_id"
+                    value="{{ event.id }}"
+                >
+
+                <div class="form-group">
+                    <label for="name">姓名</label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        placeholder="請輸入姓名"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">聯絡電話</label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        placeholder="例如：0912345678"
+                        required
+                    >
+                </div>
+
+                <div class="button-group">
+                    <button type="submit">送出報名</button>
+
+                    <a class="secondary-button" href="/events">
+                        取消
+                    </a>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
