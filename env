@@ -1,0 +1,5 @@
+DB_USER=postgres
+DB_PASSWORD=請替換成你在Adminer登入的密碼
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=1030hackthon
