@@ -3,51 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>新增活動</title>
+    <title>新增活動｜活動報名系統</title>
+    <link rel="stylesheet" href="/www/style.css">
 </head>
-
 <body>
-    <h1>新增活動</h1>
+    <header class="site-header">
+        <a class="brand" href="/events">
+            <span class="brand-mark">報</span>
+            <span>活動報名系統</span>
+        </a>
+        <nav aria-label="主要導覽">
+            <a href="/events">活動清單</a>
+            <a href="/events/add" aria-current="page">新增活動</a>
+        </nav>
+    </header>
 
-    <form action="/events/create" method="post">
-        <div>
-            <label for="title">活動名稱</label>
-            <input
-                type="text"
-                id="title"
-                name="title"
-                placeholder="請輸入活動名稱"
-                required
-            >
-        </div>
+    <main class="container narrow-container">
+        <section class="form-card">
+            <div class="section-heading">
+                <p class="eyebrow">建立新活動</p>
+                <h1>新增活動</h1>
+                <p>填寫活動資訊後，參加者就能在活動清單中查看並報名。</p>
+            </div>
 
-        <br>
+            <form action="/events/create" method="post">
+                <div class="form-group">
+                    <label for="title">活動名稱 <span class="required">必填</span></label>
+                    <input type="text" id="title" name="title" placeholder="例如：校園程式設計工作坊" maxlength="255" required>
+                </div>
 
-        <div>
-            <label for="description">活動說明</label>
-            <textarea
-                id="description"
-                name="description"
-                rows="5"
-                placeholder="請輸入活動說明"
-            ></textarea>
-        </div>
+                <div class="form-group">
+                    <label for="description">活動說明</label>
+                    <textarea id="description" name="description" rows="6" placeholder="介紹活動內容、地點或注意事項"></textarea>
+                </div>
 
-        <br>
+                <div class="form-group">
+                    <label for="deadline">報名截止時間</label>
+                    <input type="datetime-local" id="deadline" name="deadline">
+                    <p class="field-note">若不設定，後端可將此欄位保留為空值。</p>
+                </div>
 
-        <div>
-            <label for="deadline">報名截止時間</label>
-            <input
-                type="datetime-local"
-                id="deadline"
-                name="deadline"
-            >
-        </div>
-
-        <br>
-
-        <button type="submit">新增活動</button>
-        <a href="/events">返回活動清單</a>
-    </form>
+                <div class="button-group">
+                    <button type="submit">建立活動</button>
+                    <a class="secondary-button" href="/events">取消並返回</a>
+                </div>
+            </form>
+        </section>
+    </main>
 </body>
 </html>

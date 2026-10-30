@@ -3,76 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>報名名單</title>
+    <title>報名名單｜活動報名系統</title>
     <link rel="stylesheet" href="/www/style.css">
 </head>
-
 <body>
-    <header>
-        <h1>活動報名系統</h1>
-
-        <nav>
+    <header class="site-header">
+        <a class="brand" href="/events">
+            <span class="brand-mark">報</span>
+            <span>活動報名系統</span>
+        </a>
+        <nav aria-label="主要導覽">
             <a href="/events">活動清單</a>
             <a href="/events/add">新增活動</a>
         </nav>
     </header>
 
     <main class="container">
-        <div class="page-heading">
+        <section class="hero compact-hero">
             <div>
-                <h2>{{ event.title }}－報名名單</h2>
-                <p>目前共有 {{ registrations | length }} 人報名</p>
+                <p class="eyebrow">報名名單</p>
+                <h1>{{ event.title }}</h1>
+                <p>目前共有 <strong>{{ registrations | length }}</strong> 人完成報名。</p>
             </div>
-
-            <a
-                class="primary-button"
-                href="/events/{{ event.id }}/register"
-            >
-                新增報名
-            </a>
-        </div>
+            <a class="primary-button" href="/events/{{ event.id }}/register">＋ 新增報名</a>
+        </section>
 
         {% if registrations %}
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>編號</th>
-                            <th>姓名</th>
-                            <th>聯絡電話</th>
-                            <th>報名時間</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for registration in registrations %}
+            <div class="table-card">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
                             <tr>
-                                <td>{{ loop.index }}</td>
-                                <td>{{ registration.name }}</td>
-                                <td>{{ registration.phone }}</td>
-                                <td>{{ registration.created_at }}</td>
+                                <th scope="col">編號</th>
+                                <th scope="col">姓名</th>
+                                <th scope="col">聯絡電話</th>
+                                <th scope="col">報名時間</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {% for registration in registrations %}
+                                <tr>
+                                    <td><span class="row-number">{{ loop.index }}</span></td>
+                                    <td><strong>{{ registration.name }}</strong></td>
+                                    <td>{{ registration.phone }}</td>
+                                    <td>{{ registration.created_at }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         {% else %}
-            <section class="empty-message">
-                <p>目前還沒有人報名這個活動。</p>
-
-                <a
-                    class="primary-button"
-                    href="/events/{{ event.id }}/register"
-                >
-                    第一個報名
-                </a>
+            <section class="empty-state">
+                <div class="empty-icon">人</div>
+                <h2>還沒有人報名</h2>
+                <p>分享活動資訊，或成為第一位報名者。</p>
+                <a class="primary-button" href="/events/{{ event.id }}/register">第一個報名</a>
             </section>
         {% endif %}
 
-        <div class="bottom-link">
-            <a class="secondary-button" href="/events">
-                返回活動清單
-            </a>
+        <div class="page-footer-action">
+            <a class="text-link" href="/events">← 返回活動清單</a>
         </div>
     </main>
 </body>

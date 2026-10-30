@@ -3,79 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動報名</title>
+    <title>活動報名｜活動報名系統</title>
     <link rel="stylesheet" href="/www/style.css">
 </head>
-
 <body>
-    <header>
-        <h1>活動報名系統</h1>
-
-        <nav>
+    <header class="site-header">
+        <a class="brand" href="/events">
+            <span class="brand-mark">報</span>
+            <span>活動報名系統</span>
+        </a>
+        <nav aria-label="主要導覽">
             <a href="/events">活動清單</a>
             <a href="/events/add">新增活動</a>
         </nav>
     </header>
 
-    <main class="container">
+    <main class="container narrow-container">
         <section class="form-card">
-            <h2>活動報名</h2>
+            <div class="section-heading">
+                <p class="eyebrow">活動報名</p>
+                <h1>{{ event.title }}</h1>
+                <p>{{ event.description or "目前沒有活動說明" }}</p>
+            </div>
 
-            <div class="event-information">
-                <h3>{{ event.title }}</h3>
-
-                <p>
-                    {{ event.description or "目前沒有活動說明" }}
-                </p>
-
-                <p>
-                    <strong>報名截止時間：</strong>
-                    {{ event.deadline or "未設定" }}
-                </p>
+            <div class="event-summary">
+                <span>報名截止時間</span>
+                <strong>{{ event.deadline or "未設定" }}</strong>
             </div>
 
             {% if error %}
-                <p class="error-message">{{ error }}</p>
+                <div class="error-message" role="alert">{{ error }}</div>
             {% endif %}
 
-            <form
-                action="/events/{{ event.id }}/register"
-                method="post"
-            >
-                <input
-                    type="hidden"
-                    name="event_id"
-                    value="{{ event.id }}"
-                >
+            <form action="/events/{{ event.id }}/register" method="post">
+                <input type="hidden" name="event_id" value="{{ event.id }}">
 
                 <div class="form-group">
-                    <label for="name">姓名</label>
-                    <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        placeholder="請輸入姓名"
-                        required
-                    >
+                    <label for="name">姓名 <span class="required">必填</span></label>
+                    <input type="text" id="name" name="name" placeholder="請輸入姓名" maxlength="100" autocomplete="name" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="phone">聯絡電話</label>
-                    <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        placeholder="例如：0912345678"
-                        required
-                    >
+                    <label for="phone">聯絡電話 <span class="required">必填</span></label>
+                    <input type="tel" id="phone" name="phone" placeholder="例如：0912345678" maxlength="50" autocomplete="tel" required>
+                    <p class="field-note">相同姓名與電話不能重複報名同一活動。</p>
                 </div>
 
                 <div class="button-group">
-                    <button type="submit">送出報名</button>
-
-                    <a class="secondary-button" href="/events">
-                        取消
-                    </a>
+                    <button type="submit">確認報名</button>
+                    <a class="secondary-button" href="/events">取消並返回</a>
                 </div>
             </form>
         </section>
